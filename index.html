@@ -15,7 +15,7 @@
       estado.textContent = "Obteniendo ubicación...";
 
       if (!navigator.geolocation) {
-        estado.textContent = "Geolocalización no soportada por este navegador.";
+        estado.textContent = "Geolocalización no soportada.";
         return;
       }
 
@@ -23,18 +23,16 @@
         (pos) => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-
           estado.textContent = `Ubicación obtenida: ${lat}, ${lon}`;
+
+          // Construimos los datos como formulario
+          const formData = new FormData();
+          formData.append("latitud", lat);
+          formData.append("longitud", lon);
 
           fetch("https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              latitud: lat,
-              longitud: lon,
-            }),
+            body: formData
           })
           .then(res => res.text())
           .then(data => {
