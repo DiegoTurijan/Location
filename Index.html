@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ubicación del Camión</title>
+</head>
+<body>
+  <h2>Enviar ubicación del camión</h2>
+  <button onclick="enviarUbicacion()">Enviar ubicación</button>
+  <p id="estado"></p>
+
+  <script>
+    function enviarUbicacion() {
+      const estado = document.getElementById('estado');
+      estado.textContent = "Obteniendo ubicación...";
+
+      if (!navigator.geolocation) {
+        estado.textContent = "Geolocalización no soportada por este navegador.";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+
+          estado.textContent = `Ubicación obtenida: ${lat}, ${lon}`;
+
+          fetch("https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              latitud: lat,
+              longitud: lon,
+            }),
+          })
+          .then(res => res.text())
+          .then(data => {
+            estado.textContent = "Respuesta del servidor: " + data;
+          })
+          .catch(err => {
+            estado.textContent = "Error al enviar: " + err.message;
+          });
+        },
+        (err) => {
+          estado.textContent = "Error al obtener ubicación: " + err.message;
+        }
+      );
+    }
+  </script>
+</body>
+</html>
