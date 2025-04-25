@@ -2,51 +2,222 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Ubicación del Camión</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camión GPS</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "San Francisco", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f2f2f7; color: #1c1c1e;
+    }
+    .container {
+      padding: 20px; height: 100%; display: flex; flex-direction: column;
+    }
+    h2 {
+      text-align: center; font-weight: 600; margin-bottom: 20px;
+    }
+    button {
+      width: 100%; padding: 15px; margin: 10px 0;
+      background-color: #007aff; color: white; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    button:hover { background-color: #005fdd; }
+    #estado {
+      text-align: center; margin: 15px 0; min-height: 1.2em;
+    }
+    #map-container {
+      flex: 1; position: relative; margin-top: 20px;
+    }
+    #map {
+      position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 <body>
-  <h2>Enviar ubicación del camión</h2>
-  <button onclick="enviarUbicacion()">Enviar ubicación</button>
-  <p id="estado"></p>
+  <div class="container">
+    <h2>Camión GPS</h2>
+    <button onclick="enviarUbicacion()">Enviar ubicación actual</button>
+    <button onclick="cargarUbicaciones()">Mostrar ubicaciones</button>
+    <p id="estado">Estado: esperando acción</p>
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
 
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
+    const urlBase = "https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec";
+    let mapa = null;
+    let marcadores = [];
+
+    // Función mejorada para formatear coordenadas
+    function formatearCoordenada(val) {
+      if (val === null || val === undefined) return NaN;
+      
+      const str = String(val).trim();
+      if (!str) return NaN;
+      
+      // Eliminar todos los puntos y convertir comas a puntos
+      const sinPuntos = str.replace(/\./g, '').replace(',', '.');
+      
+      // Convertir a número
+      const num = parseFloat(sinPuntos);
+      if (isNaN(num)) return NaN;
+      
+      // Para valores muy grandes (como 190628645), dividir por 1e7
+      if (Math.abs(num) > 180) {
+        return num / 1e7;
+      }
+      
+      return num;
+    }
+
+    function initMap(lat, lon) {
+      if (mapa) {
+        mapa.remove();
+        marcadores = [];
+      }
+      
+      const centerLat = !isNaN(lat) ? lat : 19.0414;
+      const centerLon = !isNaN(lon) ? lon : -98.2063;
+      
+      mapa = L.map('map', {
+        center: [centerLat, centerLon],
+        zoom: 14,
+        preferCanvas: true
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(mapa);
+
+      setTimeout(() => mapa.invalidateSize(true), 100);
+    }
+
     function enviarUbicacion() {
       const estado = document.getElementById('estado');
       estado.textContent = "Obteniendo ubicación...";
-
+      
       if (!navigator.geolocation) {
         estado.textContent = "Geolocalización no soportada.";
         return;
       }
-
+      
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          estado.textContent = `Ubicación obtenida: ${lat}, ${lon}`;
+          const form = new FormData();
+          form.append("latitud", pos.coords.latitude.toFixed(7));
+          form.append("longitud", pos.coords.longitude.toFixed(7));
 
-          // Construimos los datos como formulario
-          const formData = new FormData();
-          formData.append("latitud", lat);
-          formData.append("longitud", lon);
-
-          fetch("https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec", {
-            method: "POST",
-            body: formData
-          })
-          .then(res => res.text())
-          .then(data => {
-            estado.textContent = "Respuesta del servidor: " + data;
-          })
-          .catch(err => {
-            estado.textContent = "Error al enviar: " + err.message;
-          });
+          fetch(urlBase, { method: "POST", body: form })
+            .then(r => r.text())
+            .then(txt => { 
+              estado.textContent = txt; 
+              cargarUbicaciones();
+            })
+            .catch(err => { 
+              estado.textContent = "Error al enviar: " + err.message; 
+            });
         },
         (err) => {
           estado.textContent = "Error al obtener ubicación: " + err.message;
         }
       );
     }
+
+    function cargarUbicaciones() {
+      const estado = document.getElementById('estado');
+      estado.textContent = "Cargando ubicaciones...";
+      
+      fetch(urlBase)
+        .then(r => {
+          if (!r.ok) throw new Error("Error en la respuesta del servidor");
+          return r.json();
+        })
+        .then(data => {
+          if (!data || !Array.isArray(data) || data.length === 0) {
+            estado.textContent = "No hay ubicaciones registradas.";
+            if (!mapa) initMap();
+            return;
+          }
+          
+          const ubicaciones = data
+            .map(u => {
+              try {
+                const lat = formatearCoordenada(u.latitud);
+                const lon = formatearCoordenada(u.longitud);
+                
+                if (isNaN(lat) || isNaN(lon)) {
+                  console.warn("Coordenada inválida:", u);
+                  return null;
+                }
+                
+                // Validar rangos de coordenadas
+                if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                  console.warn("Coordenada fuera de rango:", u);
+                  return null;
+                }
+                
+                return {
+                  fecha: new Date(u.fecha),
+                  lat: lat,
+                  lon: lon
+                };
+              } catch (e) {
+                console.error("Error procesando ubicación:", u, e);
+                return null;
+              }
+            })
+            .filter(u => u !== null);
+          
+          if (ubicaciones.length === 0) {
+            estado.textContent = "No se encontraron ubicaciones válidas.";
+            if (!mapa) initMap();
+            return;
+          }
+          
+          const ultima = ubicaciones[ubicaciones.length - 1];
+          
+          if (!mapa) {
+            initMap(ultima.lat, ultima.lon);
+          } else {
+            mapa.setView([ultima.lat, ultima.lon], 14);
+          }
+          
+          marcadores.forEach(m => mapa.removeLayer(m));
+          marcadores = [];
+          
+          ubicaciones.forEach(u => {
+            const m = L.marker([u.lat, u.lon])
+              .addTo(mapa)
+              .bindPopup(`<b>${u.fecha.toLocaleString()}</b><br>Lat: ${u.lat.toFixed(7)}<br>Lon: ${u.lon.toFixed(7)}`);
+            marcadores.push(m);
+          });
+          
+          if (ubicaciones.length > 1) {
+            const puntos = ubicaciones.map(u => [u.lat, u.lon]);
+            L.polyline(puntos, {color: '#0078ff'}).addTo(mapa);
+          }
+          
+          setTimeout(() => {
+            mapa.invalidateSize({pan: true});
+          }, 100);
+          
+          estado.textContent = `Mostrando ${ubicaciones.length} ubicaciones. Última: ${ultima.fecha.toLocaleString()}`;
+        })
+        .catch(err => {
+          estado.textContent = "Error al cargar ubicaciones: " + err.message;
+          console.error(err);
+          if (!mapa) initMap();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initMap();
+    });
   </script>
 </body>
 </html>
