@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camión GPS</title>
+  <title>Rastreo GPS Continuo</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     html, body {
@@ -17,15 +17,6 @@
     h2 {
       text-align: center; font-weight: 600; margin-bottom: 20px;
     }
-    button {
-      width: 100%; padding: 15px; margin: 10px 0;
-      background-color: #007aff; color: white; border: none; border-radius: 12px;
-      font-size: 16px; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    button:hover { background-color: #005fdd; }
-    #estado {
-      text-align: center; margin: 15px 0; min-height: 1.2em;
-    }
     #map-container {
       flex: 1; position: relative; margin-top: 20px;
     }
@@ -34,14 +25,119 @@
       border-radius: 12px; overflow: hidden;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .switch-label {
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #007aff;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    button {
+      width: 100%; padding: 15px;
+      background-color: #007aff; color: white; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    button:hover { background-color: #005fdd; }
+    #estado {
+      text-align: center; margin: 15px 0; min-height: 1.2em;
+      padding: 10px;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .stat-item {
+      background-color: white;
+      padding: 10px 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      flex: 1;
+      margin: 0 5px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Camión GPS</h2>
-    <button onclick="enviarUbicacion()">Enviar ubicación actual</button>
-    <button onclick="cargarUbicaciones()">Mostrar ubicaciones</button>
-    <p id="estado">Estado: esperando acción</p>
+    <h2>Rastreo GPS Continuo</h2>
+    
+    <div class="control-panel">
+      <div class="switch-container">
+        <span class="switch-label">Rastreo activo</span>
+        <label class="switch">
+          <input type="checkbox" id="rastreoSwitch">
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <button onclick="cargarRuta()">Mostrar ruta guardada</button>
+      <button onclick="limpiarMapa()" style="background-color: #ff3b30;">Limpiar mapa</button>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-item" id="contadorPuntos">Puntos: 0</div>
+      <div class="stat-item" id="ultimaActualizacion">Última: --:--:--</div>
+      <div class="stat-item" id="estadoRastreo">Estado: Inactivo</div>
+    </div>
+    
+    <p id="estado">Esperando activación del rastreo...</p>
+    
     <div id="map-container">
       <div id="map"></div>
     </div>
@@ -52,8 +148,13 @@
     const urlBase = "https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec";
     let mapa = null;
     let marcadores = [];
-
-    // Función mejorada para formatear coordenadas
+    let polyline = null;
+    let watchId = null;
+    let puntosRuta = [];
+    let intervaloEnvio = null;
+    const intervaloGuardado = 10000; // 10 segundos entre guardados
+    
+    // Función para formatear coordenadas
     function formatearCoordenada(val) {
       if (val === null || val === undefined) return NaN;
       
@@ -75,10 +176,12 @@
       return num;
     }
 
+    // Inicializar mapa
     function initMap(lat, lon) {
       if (mapa) {
         mapa.remove();
         marcadores = [];
+        polyline = null;
       }
       
       const centerLat = !isNaN(lat) ? lat : 19.0414;
@@ -97,126 +200,280 @@
       setTimeout(() => mapa.invalidateSize(true), 100);
     }
 
-    function enviarUbicacion() {
-      const estado = document.getElementById('estado');
-      estado.textContent = "Obteniendo ubicación...";
+    // Función para iniciar el rastreo
+    function iniciarRastreo() {
+      if (watchId) return; // Ya está activo
+      
+      document.getElementById('estadoRastreo').textContent = "Estado: Activando...";
+      document.getElementById('estado').textContent = "Activando rastreo GPS...";
       
       if (!navigator.geolocation) {
-        estado.textContent = "Geolocalización no soportada.";
+        document.getElementById('estado').textContent = "Geolocalización no soportada.";
         return;
       }
       
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const form = new FormData();
-          form.append("latitud", pos.coords.latitude.toFixed(7));
-          form.append("longitud", pos.coords.longitude.toFixed(7));
-
-          fetch(urlBase, { method: "POST", body: form })
-            .then(r => r.text())
-            .then(txt => { 
-              estado.textContent = txt; 
-              cargarUbicaciones();
-            })
-            .catch(err => { 
-              estado.textContent = "Error al enviar: " + err.message; 
-            });
-        },
-        (err) => {
-          estado.textContent = "Error al obtener ubicación: " + err.message;
-        }
-      );
-    }
-
-    function cargarUbicaciones() {
-      const estado = document.getElementById('estado');
-      estado.textContent = "Cargando ubicaciones...";
+      // Opciones para geolocalización
+      const opciones = {
+        enableHighAccuracy: true,
+        maximumAge: 30000,
+        timeout: 27000
+      };
       
-      fetch(urlBase)
-        .then(r => {
-          if (!r.ok) throw new Error("Error en la respuesta del servidor");
-          return r.json();
-        })
-        .then(data => {
-          if (!data || !Array.isArray(data) || data.length === 0) {
-            estado.textContent = "No hay ubicaciones registradas.";
-            if (!mapa) initMap();
-            return;
-          }
+      // Iniciar seguimiento de posición
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const precision = pos.coords.accuracy;
+          const timestamp = new Date(pos.timestamp);
           
-          const ubicaciones = data
-            .map(u => {
-              try {
-                const lat = formatearCoordenada(u.latitud);
-                const lon = formatearCoordenada(u.longitud);
-                
-                if (isNaN(lat) || isNaN(lon)) {
-                  console.warn("Coordenada inválida:", u);
-                  return null;
-                }
-                
-                // Validar rangos de coordenadas
-                if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-                  console.warn("Coordenada fuera de rango:", u);
-                  return null;
-                }
-                
-                return {
-                  fecha: new Date(u.fecha),
-                  lat: lat,
-                  lon: lon
-                };
-              } catch (e) {
-                console.error("Error procesando ubicación:", u, e);
-                return null;
-              }
-            })
-            .filter(u => u !== null);
+          // Actualizar estadísticas
+          document.getElementById('ultimaActualizacion').textContent = 
+            `Última: ${timestamp.toLocaleTimeString()}`;
+          document.getElementById('estadoRastreo').textContent = 
+            `Precisión: ${Math.round(precision)}m`;
           
-          if (ubicaciones.length === 0) {
-            estado.textContent = "No se encontraron ubicaciones válidas.";
-            if (!mapa) initMap();
-            return;
-          }
-          
-          const ultima = ubicaciones[ubicaciones.length - 1];
-          
-          if (!mapa) {
-            initMap(ultima.lat, ultima.lon);
-          } else {
-            mapa.setView([ultima.lat, ultima.lon], 14);
-          }
-          
-          marcadores.forEach(m => mapa.removeLayer(m));
-          marcadores = [];
-          
-          ubicaciones.forEach(u => {
-            const m = L.marker([u.lat, u.lon])
-              .addTo(mapa)
-              .bindPopup(`<b>${u.fecha.toLocaleString()}</b><br>Lat: ${u.lat.toFixed(7)}<br>Lon: ${u.lon.toFixed(7)}`);
-            marcadores.push(m);
+          // Agregar punto a la ruta
+          puntosRuta.push({
+            lat: lat,
+            lon: lon,
+            fecha: timestamp,
+            precision: precision
           });
           
-          if (ubicaciones.length > 1) {
-            const puntos = ubicaciones.map(u => [u.lat, u.lon]);
-            L.polyline(puntos, {color: '#0078ff'}).addTo(mapa);
-          }
+          document.getElementById('contadorPuntos').textContent = 
+            `Puntos: ${puntosRuta.length}`;
           
-          setTimeout(() => {
-            mapa.invalidateSize({pan: true});
-          }, 100);
-          
-          estado.textContent = `Mostrando ${ubicaciones.length} ubicaciones. Última: ${ultima.fecha.toLocaleString()}`;
+          // Actualizar mapa
+          actualizarMapaEnTiempoReal(lat, lon);
+        },
+        (err) => {
+          document.getElementById('estado').textContent = 
+            "Error en GPS: " + err.message;
+          document.getElementById('estadoRastreo').textContent = 
+            "Estado: Error";
+        },
+        opciones
+      );
+      
+      // Configurar intervalo para guardar datos periódicamente
+      intervaloEnvio = setInterval(guardarRuta, intervaloGuardado);
+      
+      document.getElementById('estadoRastreo').textContent = "Estado: Activo";
+      document.getElementById('estado').textContent = "Rastreo activo - Guardando ruta...";
+    }
+
+    // Función para detener el rastreo
+    function detenerRastreo() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      
+      if (intervaloEnvio) {
+        clearInterval(intervaloEnvio);
+        intervaloEnvio = null;
+      }
+      
+      // Guardar los puntos restantes
+      if (puntosRuta.length > 0) {
+        guardarRuta();
+      }
+      
+      document.getElementById('estadoRastreo').textContent = "Estado: Inactivo";
+      document.getElementById('estado').textContent = 
+        `Rastreo detenido. Puntos registrados: ${puntosRuta.length}`;
+    }
+
+    // Función para actualizar el mapa en tiempo real
+    function actualizarMapaEnTiempoReal(lat, lon) {
+      if (!mapa) {
+        initMap(lat, lon);
+      } else {
+        mapa.setView([lat, lon], 14);
+      }
+      
+      // Limpiar marcadores anteriores (opcional, para mejor rendimiento)
+      if (marcadores.length > 10) {
+        marcadores.slice(0, -10).forEach(m => mapa.removeLayer(m));
+        marcadores = marcadores.slice(-10);
+      }
+      
+      // Agregar nuevo marcador
+      const m = L.marker([lat, lon])
+        .addTo(mapa)
+        .bindPopup(`<b>${new Date().toLocaleTimeString()}</b><br>Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}`);
+      marcadores.push(m);
+      
+      // Actualizar línea de ruta
+      if (puntosRuta.length > 1) {
+        const puntos = puntosRuta.map(p => [p.lat, p.lon]);
+        
+        if (polyline) {
+          mapa.removeLayer(polyline);
+        }
+        
+        polyline = L.polyline(puntos, {
+          color: '#0078ff',
+          weight: 5,
+          opacity: 0.7,
+          lineJoin: 'round'
+        }).addTo(mapa);
+      }
+    }
+
+    // Función para guardar la ruta al servidor
+    function guardarRuta() {
+      if (puntosRuta.length === 0) return;
+      
+      const estado = document.getElementById('estado');
+      estado.textContent = "Guardando ruta...";
+      
+      const puntosAEnviar = [...puntosRuta];
+      puntosRuta = []; // Limpiar buffer local
+      
+      // Enviar todos los puntos en una sola solicitud
+      const form = new FormData();
+      form.append("accion", "guardar_ruta");
+      form.append("ruta", JSON.stringify(puntosAEnviar));
+      
+      fetch(urlBase, { method: "POST", body: form })
+        .then(r => r.text())
+        .then(txt => {
+          estado.textContent = `Ruta guardada (${puntosAEnviar.length} puntos). ${txt}`;
+          document.getElementById('contadorPuntos').textContent = "Puntos: 0";
         })
         .catch(err => {
-          estado.textContent = "Error al cargar ubicaciones: " + err.message;
-          console.error(err);
-          if (!mapa) initMap();
+          estado.textContent = "Error al guardar: " + err.message;
+          // Si falla, volver a agregar los puntos al buffer
+          puntosRuta = puntosAEnviar.concat(puntosRuta);
         });
     }
 
+    // Función para cargar la ruta guardada
+    function cargarRuta() {
+      const estado = document.getElementById('estado');
+      estado.textContent = "Cargando ruta guardada...";
+      
+      const form = new FormData();
+      form.append("accion", "obtener_ruta");
+      
+      fetch(urlBase, { method: "POST", body: form })
+        .then(r => r.json())
+        .then(data => {
+          if (!data || !Array.isArray(data) || data.length === 0) {
+            estado.textContent = "No hay rutas guardadas.";
+            return;
+          }
+          
+          // Procesar puntos de la ruta
+          const puntosValidos = data
+            .map(p => {
+              try {
+                const lat = formatearCoordenada(p.latitud || p.lat);
+                const lon = formatearCoordenada(p.longitud || p.lon);
+                
+                if (isNaN(lat) || isNaN(lon)) return null;
+                if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+                
+                return {
+                  lat: lat,
+                  lon: lon,
+                  fecha: new Date(p.fecha),
+                  precision: p.precision || 0
+                };
+              } catch (e) {
+                console.error("Error procesando punto:", p, e);
+                return null;
+              }
+            })
+            .filter(p => p !== null);
+          
+          if (puntosValidos.length === 0) {
+            estado.textContent = "No se encontraron puntos válidos.";
+            return;
+          }
+          
+          // Mostrar en el mapa
+          mostrarRutaCompleta(puntosValidos);
+          estado.textContent = `Ruta cargada: ${puntosValidos.length} puntos.`;
+        })
+        .catch(err => {
+          estado.textContent = "Error al cargar ruta: " + err.message;
+          console.error(err);
+        });
+    }
+
+    // Función para mostrar la ruta completa en el mapa
+    function mostrarRutaCompleta(puntos) {
+      if (puntos.length === 0) return;
+      
+      const ultimoPunto = puntos[puntos.length - 1];
+      
+      // Inicializar mapa si no existe
+      if (!mapa) {
+        initMap(ultimoPunto.lat, ultimoPunto.lon);
+      } else {
+        mapa.setView([ultimoPunto.lat, ultimoPunto.lon], 14);
+      }
+      
+      // Limpiar marcadores anteriores
+      marcadores.forEach(m => mapa.removeLayer(m));
+      marcadores = [];
+      
+      // Mostrar puntos importantes (primero, último y algunos intermedios)
+      [puntos[0], puntos[puntos.length - 1]].forEach((p, i) => {
+        const m = L.marker([p.lat, p.lon])
+          .addTo(mapa)
+          .bindPopup(`<b>${i === 0 ? 'INICIO' : 'FIN'}</b><br>${p.fecha.toLocaleString()}<br>Lat: ${p.lat.toFixed(6)}<br>Lon: ${p.lon.toFixed(6)}`);
+        marcadores.push(m);
+      });
+      
+      // Mostrar ruta completa
+      if (polyline) {
+        mapa.removeLayer(polyline);
+      }
+      
+      const puntosCoordenadas = puntos.map(p => [p.lat, p.lon]);
+      polyline = L.polyline(puntosCoordenadas, {
+        color: '#0078ff',
+        weight: 5,
+        opacity: 0.7,
+        lineJoin: 'round'
+      }).addTo(mapa);
+      
+      // Ajustar vista para mostrar toda la ruta
+      mapa.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+    }
+
+    // Función para limpiar el mapa
+    function limpiarMapa() {
+      if (polyline) {
+        mapa.removeLayer(polyline);
+        polyline = null;
+      }
+      
+      marcadores.forEach(m => mapa.removeLayer(m));
+      marcadores = [];
+      
+      document.getElementById('estado').textContent = "Mapa limpiado.";
+    }
+
+    // Evento para el switch de rastreo
+    document.getElementById('rastreoSwitch').addEventListener('change', function(e) {
+      if (e.target.checked) {
+        iniciarRastreo();
+      } else {
+        detenerRastreo();
+      }
+    });
+
+    // Inicializar al cargar la página
     document.addEventListener('DOMContentLoaded', () => {
       initMap();
+      
+      // Opcional: cargar ruta automáticamente
+      // cargarRuta();
     });
   </script>
 </body>
