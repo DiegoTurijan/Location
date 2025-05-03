@@ -102,15 +102,23 @@
     let marcadores = [];
     let intervalo = null;
 
+    // Function to parse coordinates, removing all periods and dividing by a factor
     function parseCoord(val) {
       const s = String(val);
-      const puntos = (s.match(/\./g) || []).length;
-      if (puntos > 1) {
-        const raw = s.replace(/\./g, '');
-        return parseFloat(raw) / 1e7;
-      } else {
-        return parseFloat(s);
+      // Remove all periods
+      const cleanedString = s.replace(/\./g, '');
+
+      // Parse as a float to handle potential negative signs
+      const number = parseFloat(cleanedString);
+
+      // Check if parsing was successful
+      if (isNaN(number)) {
+          console.error("Failed to parse coordinate:", val);
+          return null; // Return null or handle error appropriately
       }
+
+      // Divide by 10,000,000 to get the correct decimal value
+      return number / 10000000;
     }
 
     function enviarUbicacion() {
@@ -160,9 +168,16 @@
           }
           const ubicaciones = data.map(u => ({
             fecha: new Date(u.fecha),
+            // Use latitud for latitude and longitud for longitude
             lat: parseCoord(u.latitud),
             lon: parseCoord(u.longitud)
-          }));
+          })).filter(u => u.lat !== null && u.lon !== null); // Filter out locations that failed to parse
+
+          if (!ubicaciones.length) {
+             estado.textContent = "No hay ubicaciones válidas para mostrar.";
+             return;
+          }
+
           const ultima = ubicaciones[ubicaciones.length - 1];
 
           if (!mapa) {
@@ -194,3 +209,4 @@
   </script>
 </body>
 </html>
+
