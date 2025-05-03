@@ -3,131 +3,365 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Camión GPS Auto</title>
+  <title>Camión GPS Tracker</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
+    :root {
+      --ios-blue: #007AFF;
+      --ios-green: #34C759;
+      --ios-red: #FF3B30;
+      --ios-gray: #8E8E93;
+      --ios-bg: #F2F2F7;
+      --ios-card: #FFFFFF;
+      --ios-text: #1C1C1E;
+      --ios-text-secondary: #636366;
+    }
+    
     html, body {
       margin: 0; padding: 0; height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, "San Francisco", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f2f2f7; color: #1c1c1e;
+      font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--ios-bg); color: var(--ios-text);
+      -webkit-tap-highlight-color: transparent;
     }
+    
     .container {
-      padding: 20px;
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
     }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    
     h2 {
-      text-align: center; font-weight: 600; margin-bottom: 20px;
+      font-weight: 600; 
+      margin: 0;
+      font-size: 22px;
+      color: var(--ios-text);
     }
+    
+    .card {
+      background: var(--ios-card);
+      border-radius: 14px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.03);
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:active {
+      transform: scale(0.98);
+    }
+    
+    .card-header {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .card-header i {
+      margin-right: 12px;
+      font-size: 20px;
+      color: var(--ios-blue);
+    }
+    
+    .card-body {
+      padding: 16px;
+    }
+    
     .switch-container {
-      display: flex; align-items: center; justify-content: space-between;
-      background: white; padding: 15px 20px; border-radius: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      padding: 12px 16px;
     }
+    
     .switch-label {
-      font-size: 16px; font-weight: 600;
+      font-size: 17px; 
+      font-weight: 500;
+      display: flex;
+      align-items: center;
     }
+    
+    .switch-label i {
+      margin-right: 10px;
+      color: var(--ios-blue);
+    }
+    
     .switch {
       position: relative;
       display: inline-block;
-      width: 50px;
-      height: 28px;
+      width: 52px;
+      height: 32px;
     }
+    
     .switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
+    
     .slider {
       position: absolute;
       cursor: pointer;
       top: 0; left: 0;
       right: 0; bottom: 0;
-      background-color: #ccc;
+      background-color: #e5e5ea;
       transition: .4s;
-      border-radius: 28px;
+      border-radius: 16px;
     }
+    
     .slider:before {
       position: absolute;
       content: "";
-      height: 22px;
-      width: 22px;
-      left: 3px;
-      bottom: 3px;
+      height: 28px;
+      width: 28px;
+      left: 2px;
+      bottom: 2px;
       background-color: white;
       transition: .4s;
       border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
+    
     input:checked + .slider {
-      background-color: #34c759;
+      background-color: var(--ios-green);
     }
+    
     input:checked + .slider:before {
-      transform: translateX(22px);
+      transform: translateX(20px);
     }
-    button {
-      width: 100%; padding: 15px; margin: 10px 0;
-      background-color: #007aff; color: white; border: none; border-radius: 12px;
-      font-size: 16px; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    
+    .btn {
+      width: 100%; 
+      padding: 16px; 
+      margin: 8px 0;
+      background-color: var(--ios-blue); 
+      color: white; 
+      border: none; 
+      border-radius: 12px;
+      font-size: 17px; 
+      font-weight: 500; 
+      box-shadow: 0 2px 8px rgba(0,122,255,0.2);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+    
+    .btn:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    
+    .btn i {
+      margin-right: 8px;
+    }
+    
+    .btn-secondary {
+      background-color: var(--ios-card);
+      color: var(--ios-blue);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
     #estado {
-      text-align: center; margin: 15px 0; min-height: 1.2em;
+      text-align: center; 
+      margin: 12px 0; 
+      min-height: 1.2em;
+      font-size: 15px;
+      color: var(--ios-text-secondary);
     }
+    
     #map {
-      height: 400px; width: 100%;
-      border-radius: 12px; overflow: hidden;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      margin-top: 20px;
+      height: 300px; 
+      width: 100%;
+      border-radius: 14px; 
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-top: 8px;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .stats-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+    
+    .stat-card {
+      background: var(--ios-card);
+      border-radius: 12px;
+      padding: 12px;
+      flex: 1;
+      margin: 0 4px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--ios-blue);
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 13px;
+      color: var(--ios-text-secondary);
+    }
+    
+    .custom-icon {
+      background: transparent;
+      border: none;
+    }
+    
+    .truck-marker {
+      width: 24px;
+      height: 24px;
+      background-color: var(--ios-blue);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(0, 122, 255, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(0, 122, 255, 0);
+      }
+    }
+    
+    .info-window {
+      font-family: -apple-system, BlinkMacSystemFont, "San Francisco", Roboto, Helvetica, Arial, sans-serif;
+      padding: 8px;
+    }
+    
+    .info-window h3 {
+      margin: 0 0 4px 0;
+      font-size: 16px;
+      color: var(--ios-text);
+    }
+    
+    .info-window p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--ios-text-secondary);
+    }
+    
+    .last-update {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--ios-text-secondary);
+    }
+    
+    .last-update i {
+      margin-right: 6px;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Camión GPS</h2>
-
-    <div class="switch-container">
-      <span class="switch-label">Ubicación Automática</span>
-      <label class="switch">
-        <input type="checkbox" id="autoSwitch" onchange="toggleEnvioAutomatico(this)">
-        <span class="slider"></span>
-      </label>
+    <div class="header">
+      <h2 class="animate__animated animate__fadeIn">Ruta del Camión</h2>
+      <div class="truck-marker pulse">
+        <i class="fas fa-truck"></i>
+      </div>
     </div>
 
-    <button onclick="cargarUbicaciones()">Mostrar ubicaciones</button>
-    <p id="estado">Estado: esperando acción</p>
-    <div id="map"></div>
+    <div class="card animate__animated animate__fadeInUp">
+      <div class="card-header">
+        <i class="fas fa-satellite-dish"></i>
+        <div style="flex: 1;">
+          <div>Seguimiento GPS</div>
+          <div style="font-size: 13px; color: var(--ios-text-secondary);">Estado: <span id="estado">Listo</span></div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoSwitch" onchange="toggleEnvioAutomatico(this)">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="card-body">
+        <button class="btn animate__animated animate__fadeInUp" onclick="cargarUbicaciones()" style="animation-delay: 0.1s;">
+          <i class="fas fa-map-marked-alt"></i> Mostrar ruta
+        </button>
+        <button class="btn btn-secondary animate__animated animate__fadeInUp" onclick="mostrarInfoCamion()" style="animation-delay: 0.2s;">
+          <i class="fas fa-info-circle"></i> Información
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-container animate__animated animate__fadeInUp" style="animation-delay: 0.3s;" id="statsContainer">
+      <!-- Las estadísticas se llenarán dinámicamente -->
+    </div>
+
+    <div class="card animate__animated animate__fadeInUp" style="animation-delay: 0.4s;">
+      <div class="card-header">
+        <i class="fas fa-map"></i>
+        <div>Mapa de Ruta</div>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        <div id="map"></div>
+        <div class="last-update" id="lastUpdate">
+          <i class="fas fa-clock"></i> Última actualización: Nunca
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/es.min.js"></script>
   <script>
     const urlBase = "https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec";
     let mapa = null;
     let marcadores = [];
+    let rutaPolyline = null;
     let intervalo = null;
+    let ultimaActualizacion = null;
 
-    // Function to parse coordinates, removing all periods and dividing by a factor
+    // Configurar moment.js en español
+    moment.locale('es');
+
     function parseCoord(val) {
       const s = String(val);
-      // Remove all periods
       const cleanedString = s.replace(/\./g, '');
-
-      // Parse as a float to handle potential negative signs
       const number = parseFloat(cleanedString);
-
-      // Check if parsing was successful
-      if (isNaN(number)) {
-          console.error("Failed to parse coordinate:", val);
-          return null; // Return null or handle error appropriately
-      }
-
-      // Divide by 10,000,000 to get the correct decimal value
-      return number / 10000000;
+      return isNaN(number) ? null : number / 10000000;
     }
 
     function enviarUbicacion() {
       const estado = document.getElementById('estado');
       estado.textContent = "Enviando ubicación...";
+      
       if (!navigator.geolocation) {
-        estado.textContent = "Geolocalización no soportada.";
+        estado.textContent = "Geolocalización no soportada";
         return;
       }
+      
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const form = new FormData();
@@ -136,11 +370,19 @@
 
           fetch(urlBase, { method: "POST", body: form })
             .then(r => r.text())
-            .then(txt => { estado.textContent = txt + " (" + new Date().toLocaleTimeString() + ")"; })
-            .catch(err => { estado.textContent = "Error al enviar: " + err.message; });
+            .then(txt => { 
+              estado.textContent = "Ubicación enviada";
+              actualizarUltimaActualizacion();
+              mostrarNotificacion("Ubicación enviada correctamente", "success");
+            })
+            .catch(err => { 
+              estado.textContent = "Error al enviar";
+              mostrarNotificacion("Error al enviar ubicación", "error");
+            });
         },
         (err) => {
-          estado.textContent = "Error al obtener ubicación: " + err.message;
+          estado.textContent = "Error de geolocalización";
+          mostrarNotificacion("Error al obtener ubicación: " + err.message, "error");
         }
       );
     }
@@ -148,65 +390,286 @@
     function toggleEnvioAutomatico(input) {
       const estado = document.getElementById('estado');
       if (input.checked) {
-        estado.textContent = "Ubicación automática activada.";
+        estado.textContent = "Envío automático activado";
         enviarUbicacion();
         intervalo = setInterval(enviarUbicacion, 30000); // cada 30s
+        mostrarNotificacion("Seguimiento automático activado", "success");
       } else {
-        estado.textContent = "Ubicación automática desactivada.";
+        estado.textContent = "Envío automático desactivado";
         clearInterval(intervalo);
+        mostrarNotificacion("Seguimiento automático desactivado", "info");
       }
     }
 
+    function actualizarUltimaActualizacion() {
+      ultimaActualizacion = new Date();
+      document.getElementById('lastUpdate').innerHTML = `
+        <i class="fas fa-clock"></i> Última actualización: ${moment(ultimaActualizacion).fromNow()}
+      `;
+    }
+
+    function mostrarNotificacion(mensaje, tipo) {
+      // Crear elemento de notificación
+      const notificacion = document.createElement('div');
+      notificacion.className = `animate__animated animate__fadeInUp notificacion ${tipo}`;
+      notificacion.innerHTML = `
+        <i class="fas fa-${tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        ${mensaje}
+      `;
+      
+      // Añadir al cuerpo
+      document.body.appendChild(notificacion);
+      
+      // Eliminar después de 3 segundos
+      setTimeout(() => {
+        notificacion.classList.remove('animate__fadeInUp');
+        notificacion.classList.add('animate__fadeOut');
+        setTimeout(() => notificacion.remove(), 500);
+      }, 3000);
+    }
+
+    function calcularDistancia(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Radio de la Tierra en km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function mostrarInfoCamion() {
+      // Crear ventana de información
+      const infoWindow = document.createElement('div');
+      infoWindow.className = 'info-window';
+      infoWindow.innerHTML = `
+        <h3><i class="fas fa-truck"></i> Información del Camión</h3>
+        <p><strong>ID:</strong> TRK-2023-45</p>
+        <p><strong>Conductor:</strong> Juan Pérez</p>
+        <p><strong>Modelo:</strong> Volvo FH16 750</p>
+        <p><strong>Carga:</strong> Materiales de construcción</p>
+        <p><strong>Estado:</strong> En ruta</p>
+      `;
+      
+      // Mostrar como alerta (podrías usar un modal más elegante)
+      alert(infoWindow.textContent);
+    }
+
     function cargarUbicaciones() {
+      const estado = document.getElementById('estado');
+      estado.textContent = "Cargando ruta...";
+      
       fetch(urlBase)
         .then(r => r.json())
         .then(data => {
-          const estado = document.getElementById('estado');
           if (!data.length) {
-            estado.textContent = "No hay ubicaciones registradas.";
+            estado.textContent = "No hay ubicaciones";
+            mostrarNotificacion("No hay datos de ubicación", "info");
             return;
           }
+          
+          // Procesar y filtrar ubicaciones
           const ubicaciones = data.map(u => ({
             fecha: new Date(u.fecha),
-            // Use latitud for latitude and longitud for longitude
             lat: parseCoord(u.latitud),
             lon: parseCoord(u.longitud)
-          })).filter(u => u.lat !== null && u.lon !== null); // Filter out locations that failed to parse
-
+          })).filter(u => u.lat !== null && u.lon !== null);
+          
           if (!ubicaciones.length) {
-             estado.textContent = "No hay ubicaciones válidas para mostrar.";
-             return;
+            estado.textContent = "Datos inválidos";
+            mostrarNotificacion("No hay ubicaciones válidas", "error");
+            return;
           }
 
+          // Ordenar por fecha (más antigua primero)
+          ubicaciones.sort((a, b) => a.fecha - b.fecha);
+          
+          const primera = ubicaciones[0];
           const ultima = ubicaciones[ubicaciones.length - 1];
-
+          
+          // Calcular distancia total
+          let distanciaTotal = 0;
+          for (let i = 1; i < ubicaciones.length; i++) {
+            distanciaTotal += calcularDistancia(
+              ubicaciones[i-1].lat, ubicaciones[i-1].lon,
+              ubicaciones[i].lat, ubicaciones[i].lon
+            );
+          }
+          
+          // Actualizar estadísticas
+          document.getElementById('statsContainer').innerHTML = `
+            <div class="stat-card animate__animated animate__fadeIn">
+              <div class="stat-value">${ubicaciones.length}</div>
+              <div class="stat-label">Puntos</div>
+            </div>
+            <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.1s;">
+              <div class="stat-value">${distanciaTotal.toFixed(2)} km</div>
+              <div class="stat-label">Distancia</div>
+            </div>
+            <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.2s;">
+              <div class="stat-value">${moment(primera.fecha).format('HH:mm')}</div>
+              <div class="stat-label">Inicio</div>
+            </div>
+            <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.3s;">
+              <div class="stat-value">${moment(ultima.fecha).format('HH:mm')}</div>
+              <div class="stat-label">Fin</div>
+            </div>
+          `;
+          
+          // Calcular punto medio para centrar el mapa
+          const centroLat = (primera.lat + ultima.lat) / 2;
+          const centroLon = (primera.lon + ultima.lon) / 2;
+          
+          // Inicializar mapa si no existe
           if (!mapa) {
-            mapa = L.map('map').setView([ultima.lat, ultima.lon], 14);
+            mapa = L.map('map').setView([centroLat, centroLon], 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               attribution: '© OpenStreetMap'
             }).addTo(mapa);
           } else {
-            mapa.setView([ultima.lat, ultima.lon], 14);
+            mapa.setView([centroLat, centroLon], 14);
           }
-
+          
+          // Eliminar marcadores y polilínea existentes
           marcadores.forEach(m => m.remove());
           marcadores = [];
-
-          ubicaciones.forEach(u => {
-            const m = L.marker([u.lat, u.lon])
-              .addTo(mapa)
-              .bindPopup(`<b>${u.fecha.toLocaleString()}</b>`);
-            marcadores.push(m);
+          if (rutaPolyline) {
+            rutaPolyline.remove();
+          }
+          
+          // Crear array de coordenadas para la ruta
+          const coordenadasRuta = ubicaciones.map(u => [u.lat, u.lon]);
+          
+          // Dibujar la polilínea de la ruta
+          rutaPolyline = L.polyline(coordenadasRuta, {
+            color: '#007AFF',
+            weight: 5,
+            opacity: 0.7,
+            lineJoin: 'round'
+          }).addTo(mapa);
+          
+          // Añadir marcadores con iconos personalizados
+          ubicaciones.forEach((u, index) => {
+            let icono;
+            if (index === 0) { // Primer punto (inicio)
+              icono = L.divIcon({
+                className: 'custom-icon',
+                html: `<div class="truck-marker" style="background-color: var(--ios-red);">
+                         <i class="fas fa-flag"></i>
+                       </div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+              });
+            } else if (index === ubicaciones.length - 1) { // Último punto (fin)
+              icono = L.divIcon({
+                className: 'custom-icon',
+                html: `<div class="truck-marker pulse" style="background-color: var(--ios-green);">
+                         <i class="fas fa-flag-checkered"></i>
+                       </div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+              });
+            } else if (index % 5 === 0) { // Algunos puntos intermedios
+              icono = L.divIcon({
+                className: 'custom-icon',
+                html: `<div class="truck-marker" style="background-color: var(--ios-blue); font-size: 10px;">
+                         ${moment(u.fecha).format('HH:mm')}
+                       </div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+              });
+            }
+            
+            if (icono) {
+              const m = L.marker([u.lat, u.lon], {icon: icono})
+                .addTo(mapa)
+                .bindPopup(`
+                  <div class="info-window">
+                    <h3>${index === 0 ? 'INICIO' : index === ubicaciones.length - 1 ? 'FIN' : 'Punto ' + index}</h3>
+                    <p><i class="fas fa-clock"></i> ${moment(u.fecha).format('LLL')}</p>
+                    <p><i class="fas fa-map-marker-alt"></i> ${u.lat.toFixed(6)}, ${u.lon.toFixed(6)}</p>
+                  </div>
+                `);
+              marcadores.push(m);
+            }
           });
-
-          setTimeout(()=> mapa.invalidateSize(), 200);
-          estado.textContent = `Se han cargado ${ubicaciones.length} ubicaciones.`;
+          
+          // Añadir marcador del camión en la última posición
+          const camionIcono = L.divIcon({
+            className: 'custom-icon',
+            html: `<div class="truck-marker pulse">
+                     <i class="fas fa-truck"></i>
+                   </div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          });
+          
+          const camionMarker = L.marker([ultima.lat, ultima.lon], {icon: camionIcono, zIndexOffset: 1000})
+            .addTo(mapa)
+            .bindPopup(`
+              <div class="info-window">
+                <h3><i class="fas fa-truck"></i> POSICIÓN ACTUAL</h3>
+                <p><i class="fas fa-clock"></i> ${moment(ultima.fecha).format('LLL')}</p>
+                <p><i class="fas fa-map-marker-alt"></i> ${ultima.lat.toFixed(6)}, ${ultima.lon.toFixed(6)}</p>
+                <p><i class="fas fa-road"></i> Distancia total: ${distanciaTotal.toFixed(2)} km</p>
+              </div>
+            `)
+            .openPopup();
+          marcadores.push(camionMarker);
+          
+          // Ajustar el zoom para que se vea toda la ruta
+          mapa.fitBounds(rutaPolyline.getBounds());
+          
+          setTimeout(() => mapa.invalidateSize(), 200);
+          estado.textContent = "Ruta cargada";
+          actualizarUltimaActualizacion();
+          mostrarNotificacion(`Ruta cargada con ${ubicaciones.length} puntos`, "success");
         })
         .catch(err => {
-          document.getElementById("estado").textContent = "Error al cargar: " + err.message;
+          estado.textContent = "Error al cargar";
+          mostrarNotificacion("Error al cargar la ruta: " + err.message, "error");
         });
     }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+      // Agregar estilos para notificaciones
+      const style = document.createElement('style');
+      style.textContent = `
+        .notificacion {
+          position: fixed;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: white;
+          padding: 12px 20px;
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          max-width: 80%;
+        }
+        .notificacion i {
+          margin-right: 10px;
+        }
+        .notificacion.success {
+          background: #34C759;
+          color: white;
+        }
+        .notificacion.error {
+          background: #FF3B30;
+          color: white;
+        }
+        .notificacion.info {
+          background: #007AFF;
+          color: white;
+        }
+      `;
+      document.head.appendChild(style);
+    });
   </script>
 </body>
 </html>
-
