@@ -5,76 +5,317 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rastreador GPS</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding:20px; background:#f2f2f7; }
-    .card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1); max-width:400px; margin:auto; }
-    input, label { width:100%; margin-top:10px; font-size:1em; }
-    .switch { display:flex; align-items:center; justify-content:space-between; margin-top:15px; }
-    .status { text-align:center; margin-top:15px; color:#555; }
+    :root {
+      --ios-blue: #007AFF;
+      --ios-gray: #F2F2F7;
+      --ios-dark-gray: #8E8E93;
+      --ios-light-gray: #E5E5EA;
+      --ios-red: #FF3B30;
+      --ios-green: #34C759;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      background: var(--ios-gray);
+      color: #1C1C1E;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    .card-section {
+      padding: 16px;
+      border-bottom: 0.5px solid var(--ios-light-gray);
+    }
+    
+    .card-section:last-child {
+      border-bottom: none;
+    }
+    
+    h2 {
+      font-size: 1.4em;
+      font-weight: 600;
+      margin: 0;
+      padding: 16px;
+      text-align: center;
+    }
+    
+    .input-field {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    
+    .input-field label {
+      display: block;
+      font-size: 0.85em;
+      color: var(--ios-dark-gray);
+      margin-bottom: 4px;
+    }
+    
+    .input-field input {
+      width: 100%;
+      font-size: 1em;
+      padding: 8px 0;
+      border: none;
+      border-bottom: 1px solid var(--ios-light-gray);
+      outline: none;
+    }
+    
+    .input-field input:focus {
+      border-bottom-color: var(--ios-blue);
+    }
+    
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+    
+    .switch-label {
+      font-size: 1em;
+    }
+    
+    .ios-switch {
+      position: relative;
+      width: 52px;
+      height: 32px;
+    }
+    
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .ios-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 32px;
+    }
+    
+    .ios-slider:before {
+      position: absolute;
+      content: "";
+      height: 28px;
+      width: 28px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .ios-slider {
+      background-color: var(--ios-blue);
+    }
+    
+    input:checked + .ios-slider:before {
+      transform: translateX(20px);
+    }
+    
+    .status {
+      text-align: center;
+      padding: 16px;
+      font-size: 0.9em;
+      color: var(--ios-dark-gray);
+    }
+    
+    .status.active {
+      color: var(--ios-green);
+    }
+    
+    .status.error {
+      color: var(--ios-red);
+    }
+    
+    .permission-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .permission-card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      max-width: 300px;
+      text-align: center;
+    }
+    
+    .permission-title {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .permission-text {
+      font-size: 0.95em;
+      margin-bottom: 20px;
+      color: var(--ios-dark-gray);
+    }
+    
+    .permission-button {
+      background: var(--ios-blue);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+    }
+    
+    .permission-button:active {
+      opacity: 0.8;
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>Rastreador GPS</h2>
-    <input type="text" id="ruta" placeholder="Nombre de ruta" />
-
-    <div class="switch">
-      <label for="auto">Enviar auto cada 30s</label>
-      <input type="checkbox" id="auto" />
+    
+    <div class="card-section">
+      <div class="input-field">
+        <label for="ruta">Nombre de la ruta</label>
+        <input type="text" id="ruta" placeholder="Ej: Viaje a la playa" />
+      </div>
     </div>
-
-    <div class="status" id="estado">Inactivo</div>
+    
+    <div class="card-section">
+      <div class="switch-container">
+        <span class="switch-label">Enviar automáticamente</span>
+        <label class="ios-switch">
+          <input type="checkbox" id="auto">
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+      <div class="status" id="estado">Listo para comenzar</div>
+    </div>
+  </div>
+  
+  <div class="permission-modal" id="permissionModal">
+    <div class="permission-card">
+      <div class="permission-title">Permiso de ubicación</div>
+      <div class="permission-text">Esta aplicación necesita acceso a tu ubicación para funcionar correctamente. Por favor acepta el permiso cuando te lo solicite tu navegador.</div>
+      <button class="permission-button" id="permissionButton">Entendido</button>
+    </div>
   </div>
 
   <script>
     const URL = "https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec";
     let intervalo;
+    let firstLocationRequest = true;
+
+    function showPermissionModal() {
+      const modal = document.getElementById('permissionModal');
+      modal.style.display = 'flex';
+      
+      document.getElementById('permissionButton').addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+    }
+
+    function updateStatus(message, type = '') {
+      const statusElement = document.getElementById('estado');
+      statusElement.textContent = message;
+      statusElement.className = 'status';
+      
+      if (type) {
+        statusElement.classList.add(type);
+      }
+    }
 
     function enviar() {
       const ruta = document.getElementById("ruta").value.trim();
+      
       if (!ruta) {
-        alert("Ingresa un nombre de ruta"); 
+        updateStatus("Ingresa un nombre de ruta", "error");
         document.getElementById("auto").checked = false;
-        document.getElementById("estado").textContent = "Inactivo";
         clearInterval(intervalo);
         return;
       }
 
       if (!navigator.geolocation) {
-        alert("Tu navegador no soporta geolocalización");
+        updateStatus("Geolocalización no soportada", "error");
         return;
       }
 
+      if (firstLocationRequest) {
+        showPermissionModal();
+        firstLocationRequest = false;
+      }
+
+      updateStatus("Obteniendo ubicación...");
+      
       navigator.geolocation.getCurrentPosition(pos => {
         const form = new FormData();
         form.append("ruta", ruta);
         form.append("latitud", pos.coords.latitude);
         form.append("longitud", pos.coords.longitude);
 
+        updateStatus("Enviando datos...");
+        
         fetch(URL, { method: "POST", body: form })
           .then(res => res.text())
           .then(txt => {
             console.log("Servidor dice:", txt);
-            document.getElementById("estado").textContent = `Último envío: ${new Date().toLocaleTimeString()}`;
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            updateStatus(`Enviado a las ${time}`, "active");
           })
           .catch(err => {
             console.error(err);
-            document.getElementById("estado").textContent = "Error al enviar";
+            updateStatus("Error al enviar", "error");
           });
       }, err => {
         console.error(err);
-        document.getElementById("estado").textContent = "Error geolocalización";
+        updateStatus("Error de geolocalización", "error");
+        
+        // Si es un error de permiso, mostramos el modal de nuevo
+        if (err.code === err.PERMISSION_DENIED) {
+          showPermissionModal();
+        }
       });
     }
 
     document.getElementById("auto").addEventListener("change", e => {
       if (e.target.checked) {
-        document.getElementById("estado").textContent = "Envío automático activado";
+        updateStatus("Envío automático activado");
         enviar(); 
         intervalo = setInterval(enviar, 30000);
       } else {
         clearInterval(intervalo);
-        document.getElementById("estado").textContent = "Inactivo";
+        updateStatus("Envío automático desactivado");
       }
+    });
+    
+    // Mejorar la experiencia del input
+    document.getElementById("ruta").addEventListener("focus", () => {
+      updateStatus("Ingresa un nombre descriptivo para tu ruta");
     });
   </script>
 </body>
