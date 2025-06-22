@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rastreador GPS</title>
+  <title>Rastreador GPS con Velocímetro</title>
   <style>
     :root {
       --ios-blue: #007AFF;
@@ -27,7 +27,7 @@
       background: #fff;
       border-radius: 14px;
       padding: 0;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      box-shadow: 0 4px_10px rgba(0,0,0,0.05);
       overflow: hidden;
       margin-bottom: 20px;
     }
@@ -47,6 +47,26 @@
       margin: 0;
       padding: 16px;
       text-align: center;
+    }
+
+    .speedometer-section {
+        padding: 24px 16px;
+        text-align: center;
+        border-bottom: 0.5px solid var(--ios-light-gray);
+    }
+
+    .speed-display {
+        font-size: 4em;
+        font-weight: 200;
+        line-height: 1;
+        color: #1C1C1E;
+    }
+    
+    .speed-unit {
+        font-size: 1.2em;
+        font-weight: 400;
+        color: var(--ios-dark-gray);
+        margin-top: 4px;
     }
     
     .input-field {
@@ -68,6 +88,7 @@
       border: none;
       border-bottom: 1px solid var(--ios-light-gray);
       outline: none;
+      background-color: transparent;
     }
     
     .input-field input:focus {
@@ -104,7 +125,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #ccc;
+      background-color: var(--ios-light-gray);
       transition: .4s;
       border-radius: 32px;
     }
@@ -119,10 +140,11 @@
       background-color: white;
       transition: .4s;
       border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
     input:checked + .ios-slider {
-      background-color: var(--ios-blue);
+      background-color: var(--ios-green);
     }
     
     input:checked + .ios-slider:before {
@@ -196,9 +218,15 @@
   </style>
 </head>
 <body>
+
   <div class="card">
     <h2>Rastreador GPS</h2>
     
+    <div class="speedometer-section">
+        <div class="speed-display" id="speedDisplay">0</div>
+        <div class="speed-unit">km/h</div>
+    </div>
+
     <div class="card-section">
       <div class="input-field">
         <label for="ruta">Nombre de la ruta</label>
@@ -211,6 +239,13 @@
         <span class="switch-label">Enviar automáticamente</span>
         <label class="ios-switch">
           <input type="checkbox" id="auto">
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+       <div class="switch-container">
+        <span class="switch-label">Rastrear solo al acelerar</span>
+        <label class="ios-switch">
+          <input type="checkbox" id="trackOnSpeed">
           <span class="ios-slider"></span>
         </label>
       </div>
@@ -227,96 +262,172 @@
   </div>
 
   <script>
-    const URL = "https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec";
-    let intervalo;
+    const URL_SHEET = "https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec";
+    let watchId;
+    let lastSpeed = 0;
     let firstLocationRequest = true;
 
+    const rutaInput = document.getElementById("ruta");
+    const autoSwitch = document.getElementById("auto");
+    const trackOnSpeedSwitch = document.getElementById("trackOnSpeed");
+    const statusElement = document.getElementById("estado");
+    const speedDisplay = document.getElementById("speedDisplay");
+    const permissionModal = document.getElementById('permissionModal');
+    const permissionButton = document.getElementById('permissionButton');
+
     function showPermissionModal() {
-      const modal = document.getElementById('permissionModal');
-      modal.style.display = 'flex';
-      
-      document.getElementById('permissionButton').addEventListener('click', () => {
-        modal.style.display = 'none';
-      });
+      permissionModal.style.display = 'flex';
     }
 
+    permissionButton.addEventListener('click', () => {
+      permissionModal.style.display = 'none';
+      requestLocation();
+    });
+
     function updateStatus(message, type = '') {
-      const statusElement = document.getElementById('estado');
       statusElement.textContent = message;
       statusElement.className = 'status';
-      
       if (type) {
         statusElement.classList.add(type);
       }
     }
 
-    function enviar() {
-      const ruta = document.getElementById("ruta").value.trim();
-      
-      if (!ruta) {
-        updateStatus("Ingresa un nombre de ruta", "error");
-        document.getElementById("auto").checked = false;
-        clearInterval(intervalo);
-        return;
-      }
-
-      if (!navigator.geolocation) {
-        updateStatus("Geolocalización no soportada", "error");
-        return;
-      }
-
-      if (firstLocationRequest) {
-        showPermissionModal();
-        firstLocationRequest = false;
-      }
-
-      updateStatus("Obteniendo ubicación...");
-      
-      navigator.geolocation.getCurrentPosition(pos => {
-        const form = new FormData();
-        form.append("ruta", ruta);
-        form.append("latitud", pos.coords.latitude);
-        form.append("longitud", pos.coords.longitude);
-
-        updateStatus("Enviando datos...");
-        
-        fetch(URL, { method: "POST", body: form })
-          .then(res => res.text())
-          .then(txt => {
-            console.log("Servidor dice:", txt);
-            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            updateStatus(`Enviado a las ${time}`, "active");
-          })
-          .catch(err => {
-            console.error(err);
-            updateStatus("Error al enviar", "error");
-          });
-      }, err => {
-        console.error(err);
-        updateStatus("Error de geolocalización", "error");
-        
-        // Si es un error de permiso, mostramos el modal de nuevo
-        if (err.code === err.PERMISSION_DENIED) {
-          showPermissionModal();
+    function requestLocation() {
+        if (!navigator.geolocation) {
+            updateStatus("Geolocalización no soportada", "error");
+            return;
         }
-      });
+
+        if (firstLocationRequest) {
+            showPermissionModal();
+            firstLocationRequest = false;
+            return; 
+        }
+
+        startWatching();
     }
 
-    document.getElementById("auto").addEventListener("change", e => {
+
+    function startWatching() {
+        const ruta = rutaInput.value.trim();
+        if (!ruta) {
+            updateStatus("Ingresa un nombre de ruta", "error");
+            autoSwitch.checked = false;
+            return;
+        }
+      
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+        }
+        
+        updateStatus("Rastreo activado. Esperando señal...", "active");
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
+
+        watchId = navigator.geolocation.watchPosition(handlePosition, handleError, options);
+    }
+    
+    function stopWatching() {
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            updateStatus("Rastreo desactivado.");
+            speedDisplay.textContent = '0';
+            lastSpeed = 0;
+        }
+    }
+    
+    function handlePosition(pos) {
+        const speed = pos.coords.speed ? pos.coords.speed * 3.6 : 0; // Convert m/s to km/h
+        speedDisplay.textContent = Math.round(speed);
+
+        const shouldSendAutomatically = autoSwitch.checked;
+        const shouldTrackOnSpeed = trackOnSpeedSwitch.checked;
+
+        if (shouldSendAutomatically) {
+            let sendData = false;
+            
+            if (shouldTrackOnSpeed) {
+                if (speed > lastSpeed) {
+                    updateStatus("Aceleración detectada. Enviando...", "active");
+                    sendData = true;
+                } else {
+                     updateStatus("Esperando aceleración...", "active");
+                }
+            } else {
+                 updateStatus("Enviando ubicación periódicamente...", "active");
+                 sendData = true; // Send on every update if not tracking speed change
+            }
+            
+            if(sendData){
+                enviarDatos(pos.coords);
+            }
+        }
+        
+        lastSpeed = speed;
+    }
+    
+    function handleError(err) {
+        console.error("Error de Geolocalización:", err);
+        let message = "Error de geolocalización.";
+        if (err.code === err.PERMISSION_DENIED) {
+            message = "Permiso de ubicación denegado.";
+            showPermissionModal();
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+            message = "Información de ubicación no disponible.";
+        } else if (err.code === err.TIMEOUT) {
+            message = "Se agotó el tiempo de espera para obtener la ubicación.";
+        }
+        updateStatus(message, "error");
+        stopWatching();
+    }
+
+
+    function enviarDatos(coords) {
+      const ruta = rutaInput.value.trim();
+      const form = new FormData();
+      form.append("ruta", ruta);
+      form.append("latitud", coords.latitude);
+      form.append("longitud", coords.longitude);
+      form.append("velocidad", coords.speed ? coords.speed * 3.6 : 0);
+
+      fetch(URL_SHEET, { method: "POST", body: form })
+        .then(res => res.text())
+        .then(txt => {
+          console.log("Servidor dice:", txt);
+          const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          updateStatus(`Enviado a las ${time}`, "active");
+        })
+        .catch(err => {
+          console.error(err);
+          updateStatus("Error al enviar", "error");
+        });
+    }
+
+    autoSwitch.addEventListener("change", e => {
       if (e.target.checked) {
-        updateStatus("Envío automático activado");
-        enviar(); 
-        intervalo = setInterval(enviar, 30000);
+        requestLocation();
       } else {
-        clearInterval(intervalo);
-        updateStatus("Envío automático desactivado");
+        stopWatching();
       }
     });
+
+    // Desactivar el switch de aceleración si el envío automático no está activado
+    trackOnSpeedSwitch.addEventListener("change", () => {
+        if(!autoSwitch.checked){
+            trackOnSpeedSwitch.checked = false;
+            updateStatus("Activa 'Enviar automáticamente' primero", "error");
+        }
+    });
     
-    // Mejorar la experiencia del input
-    document.getElementById("ruta").addEventListener("focus", () => {
+    rutaInput.addEventListener("focus", () => {
       updateStatus("Ingresa un nombre descriptivo para tu ruta");
     });
+
   </script>
 </body>
 </html>
