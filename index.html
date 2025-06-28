@@ -12,29 +12,49 @@
       --ios-light-gray: #E5E5EA;
       --ios-red: #FF3B30;
       --ios-green: #34C759;
+      --ios-dark-green: #2D9D4B;
+      --ios-dark-blue: #0066CC;
+      --shadow-color: rgba(0,0,0,0.15);
     }
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       padding: 20px;
-      background: var(--ios-gray);
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
       color: #1C1C1E;
       max-width: 500px;
       margin: 0 auto;
+      min-height: 100vh;
     }
     
     .card {
       background: #fff;
-      border-radius: 14px;
+      border-radius: 18px;
       padding: 0;
-      box-shadow: 0 4px_10px rgba(0,0,0,0.05);
+      box-shadow: 
+        0 10px 20px rgba(0,0,0,0.1),
+        0 2px 5px rgba(0,0,0,0.05);
       overflow: hidden;
       margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.3);
+      position: relative;
+    }
+    
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 10px;
+      background: linear-gradient(to right, var(--ios-blue), var(--ios-green));
+      opacity: 0.8;
     }
     
     .card-section {
       padding: 16px;
       border-bottom: 0.5px solid var(--ios-light-gray);
+      position: relative;
     }
     
     .card-section:last-child {
@@ -45,21 +65,53 @@
       font-size: 1.4em;
       font-weight: 600;
       margin: 0;
-      padding: 16px;
+      padding: 20px 16px 16px;
       text-align: center;
+      color: #1C1C1E;
+      letter-spacing: -0.2px;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.05);
     }
 
     .speedometer-section {
         padding: 24px 16px;
         text-align: center;
         border-bottom: 0.5px solid var(--ios-light-gray);
+        background: linear-gradient(to bottom, #f9f9f9, #fff);
+        position: relative;
+    }
+
+    .speedometer-section::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(0,0,0,0.1), transparent);
     }
 
     .speed-display {
-        font-size: 4em;
+        font-size: 4.5em;
         font-weight: 200;
         line-height: 1;
         color: #1C1C1E;
+        text-shadow: 
+          0 2px 4px rgba(0,0,0,0.1),
+          0 1px 0 rgba(255,255,255,0.5);
+        margin: 10px 0;
+        position: relative;
+        display: inline-block;
+        padding: 0 20px;
+    }
+    
+    .speed-display::before {
+      content: "";
+      position: absolute;
+      top: -10px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(to right, transparent, rgba(0,0,0,0.1), transparent);
     }
     
     .speed-unit {
@@ -67,6 +119,7 @@
         font-weight: 400;
         color: var(--ios-dark-gray);
         margin-top: 4px;
+        text-shadow: 0 1px 1px rgba(255,255,255,0.8);
     }
     
     .input-field {
@@ -78,21 +131,30 @@
       display: block;
       font-size: 0.85em;
       color: var(--ios-dark-gray);
-      margin-bottom: 4px;
+      margin-bottom: 8px;
+      font-weight: 500;
+      letter-spacing: -0.2px;
     }
     
     .input-field input {
       width: 100%;
       font-size: 1em;
-      padding: 8px 0;
-      border: none;
-      border-bottom: 1px solid var(--ios-light-gray);
+      padding: 12px 16px;
+      border: 1px solid var(--ios-light-gray);
+      border-radius: 10px;
       outline: none;
-      background-color: transparent;
+      background-color: rgba(242,242,247,0.5);
+      box-shadow: 
+        inset 0 1px 3px rgba(0,0,0,0.05),
+        0 1px 0 rgba(255,255,255,0.8);
+      transition: all 0.2s ease;
     }
     
     .input-field input:focus {
-      border-bottom-color: var(--ios-blue);
+      border-color: var(--ios-blue);
+      box-shadow: 
+        inset 0 1px 3px rgba(0,0,0,0.1),
+        0 0 0 3px rgba(0,122,255,0.1);
     }
     
     .switch-container {
@@ -104,6 +166,8 @@
     
     .switch-label {
       font-size: 1em;
+      color: #1C1C1E;
+      font-weight: 500;
     }
     
     .ios-switch {
@@ -128,6 +192,9 @@
       background-color: var(--ios-light-gray);
       transition: .4s;
       border-radius: 32px;
+      box-shadow: 
+        inset 0 1px 3px rgba(0,0,0,0.1),
+        0 1px 0 rgba(255,255,255,0.8);
     }
     
     .ios-slider:before {
@@ -137,18 +204,27 @@
       width: 28px;
       left: 2px;
       bottom: 2px;
-      background-color: white;
+      background: linear-gradient(to bottom, #fff, #f5f5f5);
       transition: .4s;
       border-radius: 50%;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 
+        0 2px 5px rgba(0,0,0,0.2),
+        0 1px 1px rgba(0,0,0,0.1);
+      z-index: 2;
     }
     
     input:checked + .ios-slider {
-      background-color: var(--ios-green);
+      background-color: var(--ios-blue);
+      box-shadow: 
+        inset 0 1px 3px rgba(0,0,0,0.2),
+        0 1px 0 rgba(255,255,255,0.1);
     }
     
     input:checked + .ios-slider:before {
       transform: translateX(20px);
+      box-shadow: 
+        0 2px 5px rgba(0,0,0,0.2),
+        0 1px 1px rgba(0,0,0,0.1);
     }
     
     .status {
@@ -156,14 +232,28 @@
       padding: 16px;
       font-size: 0.9em;
       color: var(--ios-dark-gray);
+      background: rgba(242,242,247,0.5);
+      border-radius: 10px;
+      margin: 8px 0;
+      box-shadow: 
+        inset 0 1px 3px rgba(0,0,0,0.05),
+        0 1px 0 rgba(255,255,255,0.8);
     }
     
     .status.active {
       color: var(--ios-green);
+      background: rgba(52,199,89,0.1);
+      box-shadow: 
+        inset 0 1px 3px rgba(0,0,0,0.05),
+        0 1px 0 rgba(255,255,255,0.8);
     }
     
     .status.error {
       color: var(--ios-red);
+      background: rgba(255,59,48,0.1);
+      box-shadow: 
+        inset 0 1px 3px rgba(0,0,0,0.05),
+        0 1px 0 rgba(255,255,255,0.8);
     }
     
     .permission-modal {
@@ -174,46 +264,133 @@
       right: 0;
       bottom: 0;
       background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(5px);
       z-index: 100;
       justify-content: center;
       align-items: center;
       padding: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
     
     .permission-card {
       background: white;
-      border-radius: 14px;
-      padding: 20px;
+      border-radius: 18px;
+      padding: 24px;
       max-width: 300px;
       text-align: center;
+      box-shadow: 
+        0 10px 30px rgba(0,0,0,0.2),
+        0 2px 10px rgba(0,0,0,0.1);
+      transform: translateY(0);
+      animation: slideUp 0.3s ease;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
     
     .permission-title {
-      font-size: 1.2em;
+      font-size: 1.3em;
       font-weight: 600;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      color: #1C1C1E;
     }
     
     .permission-text {
       font-size: 0.95em;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       color: var(--ios-dark-gray);
+      line-height: 1.4;
     }
     
     .permission-button {
       background: var(--ios-blue);
       color: white;
       border: none;
-      border-radius: 10px;
-      padding: 10px 20px;
+      border-radius: 12px;
+      padding: 12px 20px;
       font-size: 1em;
       font-weight: 500;
       cursor: pointer;
       width: 100%;
+      transition: all 0.2s ease;
+      box-shadow: 
+        0 2px 10px rgba(0,122,255,0.3),
+        0 1px 0 rgba(255,255,255,0.2) inset;
     }
     
     .permission-button:active {
-      opacity: 0.8;
+      transform: translateY(1px);
+      box-shadow: 
+        0 1px 5px rgba(0,122,255,0.3),
+        0 1px 0 rgba(255,255,255,0.2) inset;
+    }
+
+    .button-container {
+        padding: 16px;
+        display: flex;
+        justify-content: center;
+    }
+
+    #toggleButton {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 1.1em;
+        font-weight: 600;
+        color: white;
+        background: linear-gradient(to bottom, #8E8E93, #6C6C70);
+        border: none;
+        border-radius: 14px;
+        padding: 14px 24px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 
+          0 6px 12px rgba(0,0,0,0.15),
+          0 2px 4px rgba(0,0,0,0.1);
+        width: 80%;
+        max-width: 250px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    #toggleButton::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+      border-radius: 14px 14px 0 0;
+    }
+    
+    #toggleButton.active {
+        background: linear-gradient(to bottom, var(--ios-green), var(--ios-dark-green));
+        box-shadow: 
+          inset 0 2px 4px rgba(0,0,0,0.2),
+          0 3px 8px rgba(52,199,89,0.3);
+        transform: translateY(1px);
+    }
+    
+    #toggleButton.active::after {
+      background: linear-gradient(to bottom, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+    }
+    
+    /* Efecto de pulso cuando está activo */
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(52,199,89,0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(52,199,89,0); }
+      100% { box-shadow: 0 0 0 0 rgba(52,199,89,0); }
+    }
+    
+    .pulse-effect {
+      animation: pulse 1.5s infinite;
     }
   </style>
 </head>
@@ -235,13 +412,9 @@
     </div>
     
     <div class="card-section">
-      <div class="switch-container">
-        <span class="switch-label">Enviar automáticamente</span>
-        <label class="ios-switch">
-          <input type="checkbox" id="auto">
-          <span class="ios-slider"></span>
-        </label>
-      </div>
+       <div class="button-container">
+            <button id="toggleButton">Rastreo APAGADO</button>
+       </div>
        <div class="switch-container">
         <span class="switch-label">Rastrear solo al acelerar</span>
         <label class="ios-switch">
@@ -266,9 +439,11 @@
     let watchId;
     let lastSpeed = 0;
     let firstLocationRequest = true;
+    let isTracking = false;
+    let lastSendTime = 0;
 
     const rutaInput = document.getElementById("ruta");
-    const autoSwitch = document.getElementById("auto");
+    const toggleButton = document.getElementById("toggleButton");
     const trackOnSpeedSwitch = document.getElementById("trackOnSpeed");
     const statusElement = document.getElementById("estado");
     const speedDisplay = document.getElementById("speedDisplay");
@@ -289,6 +464,13 @@
       statusElement.className = 'status';
       if (type) {
         statusElement.classList.add(type);
+      }
+      
+      // Añadir efecto de pulso cuando está activo
+      if (type === 'active') {
+        toggleButton.classList.add('pulse-effect');
+      } else {
+        toggleButton.classList.remove('pulse-effect');
       }
     }
 
@@ -312,7 +494,9 @@
         const ruta = rutaInput.value.trim();
         if (!ruta) {
             updateStatus("Ingresa un nombre de ruta", "error");
-            autoSwitch.checked = false;
+            isTracking = false;
+            toggleButton.classList.remove('active');
+            toggleButton.textContent = 'Rastreo APAGADO';
             return;
         }
       
@@ -338,34 +522,46 @@
             updateStatus("Rastreo desactivado.");
             speedDisplay.textContent = '0';
             lastSpeed = 0;
+            lastSendTime = 0;
         }
     }
     
     function handlePosition(pos) {
         const speed = pos.coords.speed ? pos.coords.speed * 3.6 : 0; // Convert m/s to km/h
         speedDisplay.textContent = Math.round(speed);
+        
+        if (!isTracking) return;
 
-        const shouldSendAutomatically = autoSwitch.checked;
+        const now = Date.now();
+        if (now - lastSendTime < 30000) { // Throttle: wait 30 seconds
+            // Still provide feedback even if not sending
+             if (trackOnSpeedSwitch.checked) {
+                updateStatus("Esperando aceleración...", "active");
+             } else {
+                updateStatus("Rastreando...", "active");
+             }
+            return;
+        }
+
+
         const shouldTrackOnSpeed = trackOnSpeedSwitch.checked;
-
-        if (shouldSendAutomatically) {
-            let sendData = false;
-            
-            if (shouldTrackOnSpeed) {
-                if (speed > lastSpeed) {
-                    updateStatus("Aceleración detectada. Enviando...", "active");
-                    sendData = true;
-                } else {
-                     updateStatus("Esperando aceleración...", "active");
-                }
+        let sendData = false;
+        
+        if (shouldTrackOnSpeed) {
+            if (speed > lastSpeed) {
+                updateStatus("Aceleración detectada. Enviando...", "active");
+                sendData = true;
             } else {
-                 updateStatus("Enviando ubicación periódicamente...", "active");
-                 sendData = true; // Send on every update if not tracking speed change
+                 updateStatus("Esperando aceleración...", "active");
             }
-            
-            if(sendData){
-                enviarDatos(pos.coords);
-            }
+        } else {
+             updateStatus("Enviando ubicación periódicamente...", "active");
+             sendData = true;
+        }
+        
+        if(sendData){
+            enviarDatos(pos.coords);
+            lastSendTime = now; // Reset timer after sending
         }
         
         lastSpeed = speed;
@@ -408,19 +604,23 @@
         });
     }
 
-    autoSwitch.addEventListener("change", e => {
-      if (e.target.checked) {
-        requestLocation();
-      } else {
-        stopWatching();
-      }
+    toggleButton.addEventListener('click', () => {
+        isTracking = !isTracking;
+        if (isTracking) {
+            toggleButton.classList.add('active');
+            toggleButton.textContent = 'Rastreo ENCENDIDO';
+            requestLocation();
+        } else {
+            toggleButton.classList.remove('active');
+            toggleButton.textContent = 'Rastreo APAGADO';
+            stopWatching();
+        }
     });
 
-    // Desactivar el switch de aceleración si el envío automático no está activado
     trackOnSpeedSwitch.addEventListener("change", () => {
-        if(!autoSwitch.checked){
+        if(!isTracking){
             trackOnSpeedSwitch.checked = false;
-            updateStatus("Activa 'Enviar automáticamente' primero", "error");
+            updateStatus("Activa el rastreo primero", "error");
         }
     });
     
